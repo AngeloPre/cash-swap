@@ -1,6 +1,8 @@
 package com.example.cashswap.controller
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -63,6 +65,12 @@ class MainActivity : AppCompatActivity() {
 
         adapter = MoedasAdapter(carteira, this)
         moedasRV.adapter = adapter
+
+        val btnConverter = findViewById<Button>(R.id.btnConverter)
+        btnConverter.setOnClickListener {
+            val intent = Intent(this, ConvertActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     override fun onResume() {
