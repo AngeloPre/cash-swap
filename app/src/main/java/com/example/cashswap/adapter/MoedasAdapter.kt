@@ -35,7 +35,7 @@ class MoedasAdapter(
         }
 
         private fun formatarSaldo(moeda: Moeda): String {
-            val locale = Locale("pt", "BR")
+            val locale = Locale.forLanguageTag("pt-BR")
             return if (moeda.codigo == "BTC") {
                 String.format(locale, "%,.6f %s", moeda.saldo, moeda.codigo)
             } else {
