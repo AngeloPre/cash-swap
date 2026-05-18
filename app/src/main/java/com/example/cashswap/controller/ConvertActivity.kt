@@ -3,6 +3,12 @@ package com.example.cashswap.controller
 import android.os.Bundle
 import android.view.View
 import android.widget.*
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
+import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.cashswap.R
@@ -12,6 +18,8 @@ import com.example.cashswap.services.ServiceProvider
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.text.NumberFormat
+import java.util.Locale
 
 class ConvertActivity : AppCompatActivity() {
 
@@ -56,6 +64,29 @@ class ConvertActivity : AppCompatActivity() {
 
                         val resultado = ServiceProvider.exchangeRateService.convert(valorBigDecimal, de, para)
 
+        val spinnerOrigem = findViewById<Spinner>(R.id.spinnerOrigem)
+        spinnerOrigem.adapter = adapter
+        findViewById<Spinner>(R.id.spinnerDestino).adapter = adapter
+
+        val tvSaldoDisponivel = findViewById<TextView>(R.id.tvSaldoDisponivel)
+        spinnerOrigem.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                val moeda = moedas[position]
+                tvSaldoDisponivel.text = "Saldo disponível: ${formatarSaldo(moeda)}"
+            }
+            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+    }
+
+    private fun formatarSaldo(moeda: Moeda): String {
+        val fmt = NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR")).apply {
+            minimumFractionDigits = moeda.casasDecimais
+            maximumFractionDigits = moeda.casasDecimais
+        }
+        return if (moeda.codigo == "BTC")
+            "${fmt.format(moeda.saldo)} ${moeda.simbolo}"
+        else
+            "${moeda.simbolo} ${fmt.format(moeda.saldo)}"
                         tvResultado.text = resultado.toPlainString()
                         cardResultado.visibility = View.VISIBLE
                     } catch (e: Exception) {
