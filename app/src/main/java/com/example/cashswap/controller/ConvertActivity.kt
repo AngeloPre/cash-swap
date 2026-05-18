@@ -52,7 +52,7 @@ class ConvertActivity : AppCompatActivity() {
     }
 
     private fun formatarSaldo(moeda: Moeda): String {
-        val fmt = NumberFormat.getNumberInstance(Locale("pt", "BR")).apply {
+        val fmt = NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR")).apply {
             minimumFractionDigits = moeda.casasDecimais
             maximumFractionDigits = moeda.casasDecimais
         }
