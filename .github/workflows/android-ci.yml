@@ -36,11 +36,14 @@ jobs:
       - name: Compilar APK de debug
         run: ./gradlew assembleDebug
 
+      - name: Renomear APK
+        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/cash-swap.apk
+
       - name: Upload do APK como artefato
         uses: actions/upload-artifact@v7
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: cash-swap-apk
+          path: app/build/outputs/apk/debug/cash-swap.apk
 
   release:
     name: Publicar GitHub Release
@@ -55,7 +58,7 @@ jobs:
       - name: Baixar APK do artefato
         uses: actions/download-artifact@v8
         with:
-          name: app-debug-apk
+          name: cash-swap-apk
           path: ./apk
 
       - name: Criar GitHub Release
@@ -63,7 +66,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "v${{ github.run_number }}" \
-            ./apk/app-debug.apk \
+            ./apk/cash-swap.apk \
             --title "Release v${{ github.run_number }}" \
             --notes "Build automático gerado pelo workflow run #${{ github.run_number }} (commit ${{ github.sha }})." \
             --repo "${{ github.repository }}"
