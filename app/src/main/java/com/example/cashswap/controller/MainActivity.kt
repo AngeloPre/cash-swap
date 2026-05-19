@@ -12,39 +12,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cashswap.R
 import com.example.cashswap.adapter.MoedasAdapter
-import com.example.cashswap.model.Moeda
+import com.example.cashswap.model.CarteiraRepository
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var moedasRV: RecyclerView
     private lateinit var adapter: MoedasAdapter
-
-    private val carteira: MutableList<Moeda> = mutableListOf(
-        Moeda(
-            codigo = "BRL",
-            nome = "Real Brasileiro",
-            simbolo = "R$",
-            iconeResId = R.drawable.real,
-            casasDecimais = 2,
-            saldo = 100_000.00
-        ),
-        Moeda(
-            codigo = "USD",
-            nome = "Dólar Americano",
-            simbolo = "$",
-            iconeResId = R.drawable.dolar,
-            casasDecimais = 2,
-            saldo = 50_000.00
-        ),
-        Moeda(
-            codigo = "BTC",
-            nome = "Bitcoin",
-            simbolo = "BTC",
-            iconeResId = R.drawable.bitcoin,
-            casasDecimais = 6,
-            saldo = 0.5
-        )
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,7 +36,7 @@ class MainActivity : AppCompatActivity() {
             DividerItemDecoration(this, LinearLayoutManager.VERTICAL)
         )
 
-        adapter = MoedasAdapter(carteira, this)
+        adapter = MoedasAdapter(CarteiraRepository.moedas, this)
         moedasRV.adapter = adapter
 
         val btnConverter = findViewById<Button>(R.id.btnConverter)
@@ -75,6 +48,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        adapter.updateList(carteira)
+        adapter.updateList(CarteiraRepository.moedas)
     }
 }

@@ -8,6 +8,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.cashswap.R
+import com.example.cashswap.model.CarteiraRepository
 import com.example.cashswap.model.Currency
 import com.example.cashswap.model.Moeda
 import com.example.cashswap.services.ServiceProvider
@@ -19,11 +20,7 @@ import java.util.Locale
 
 class ConvertActivity : AppCompatActivity() {
 
-    private val moedas = listOf(
-        Moeda("BRL", "Real Brasileiro", "R$", R.drawable.real, 2, 100_000.00),
-        Moeda("USD", "Dólar Americano", "$", R.drawable.dolar, 2, 50_000.00),
-        Moeda("BTC", "Bitcoin", "BTC", R.drawable.bitcoin, 6, 0.5)
-    )
+    private val moedas = CarteiraRepository.moedas
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,10 +31,16 @@ class ConvertActivity : AppCompatActivity() {
         val editValor = findViewById<EditText>(R.id.editValor)
         val btnConverter = findViewById<Button>(R.id.btnConverter)
         val btnVoltar = findViewById<Button>(R.id.btnVoltar)
+        val btnConfirmar = findViewById<Button>(R.id.btnConfirmar)
         val progressBar = findViewById<ProgressBar>(R.id.progressBar)
         val cardResultado = findViewById<View>(R.id.cardResultado)
         val tvResultado = findViewById<TextView>(R.id.tvResultado)
         val tvSaldoDisponivel = findViewById<TextView>(R.id.tvSaldoDisponivel)
+        val tvCotacao = findViewById<TextView>(R.id.tvCotacao)
+        var valorOrigemCotado: BigDecimal? = null
+        var valorDestinoCotado: BigDecimal? = null
+        var posicaoOrigemCotada = -1
+        var posicaoDestinoCotada = -1
 
         // Configura Spinners
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, moedas.map { it.nome })
@@ -50,12 +53,27 @@ class ConvertActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 val moeda = moedas[position]
                 tvSaldoDisponivel.text = "Saldo disponível: ${formatarSaldo(moeda)}"
+                cardResultado.visibility = View.GONE
+                btnConfirmar.visibility = View.GONE
+                valorOrigemCotado = null
+                valorDestinoCotado = null
 
                 val valorDigitado = parseValorDigitado(editValor.text.toString()) ?: return
                 val textoFormatado = formatarNumero(valorDigitado, moeda.casasDecimais)
                 editValor.setText(textoFormatado)
                 editValor.setSelection(textoFormatado.length)
             }
+            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+
+        spinnerDestino.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                cardResultado.visibility = View.GONE
+                btnConfirmar.visibility = View.GONE
+                valorOrigemCotado = null
+                valorDestinoCotado = null
+            }
+
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
@@ -66,6 +84,11 @@ class ConvertActivity : AppCompatActivity() {
 
             override fun afterTextChanged(s: Editable?) {
                 val textoAtual = s?.toString().orEmpty()
+                cardResultado.visibility = View.GONE
+                btnConfirmar.visibility = View.GONE
+                valorOrigemCotado = null
+                valorDestinoCotado = null
+
                 val moedaOrigem = moedas[spinnerOrigem.selectedItemPosition]
                 val textoFormatado = mascararValorDigitado(textoAtual, moedaOrigem.casasDecimais)
 
@@ -84,21 +107,40 @@ class ConvertActivity : AppCompatActivity() {
         btnConverter.setOnClickListener {
             val valorString = editValor.text.toString()
             val valorBigDecimal = parseValorDigitado(valorString)
+            val moedaOrigem = moedas[spinnerOrigem.selectedItemPosition]
+            val moedaDestino = moedas[spinnerDestino.selectedItemPosition]
 
             if (valorBigDecimal != null && valorBigDecimal.compareTo(BigDecimal.ZERO) > 0) {
+                if (moedaOrigem.codigo == moedaDestino.codigo) {
+                    Snackbar.make(btnConverter, "Escolha moedas diferentes", Snackbar.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+
+                if (valorBigDecimal.toDouble() > moedaOrigem.saldo) {
+                    editValor.error = "Saldo insuficiente"
+                    return@setOnClickListener
+                }
+
                 lifecycleScope.launch {
                     try {
                         progressBar.visibility = View.VISIBLE
                         cardResultado.visibility = View.GONE
+                        btnConfirmar.visibility = View.GONE
 
                         val de = Currency.valueOf(moedas[spinnerOrigem.selectedItemPosition].codigo)
                         val para = Currency.valueOf(moedas[spinnerDestino.selectedItemPosition].codigo)
-                        val moedaDestino = moedas[spinnerDestino.selectedItemPosition]
 
                         val resultado = ServiceProvider.exchangeRateService.convert(valorBigDecimal, de, para)
 
+                        valorOrigemCotado = valorBigDecimal
+                        valorDestinoCotado = resultado
+                        posicaoOrigemCotada = spinnerOrigem.selectedItemPosition
+                        posicaoDestinoCotada = spinnerDestino.selectedItemPosition
+
                         tvResultado.text = formatarValor(resultado, moedaDestino)
+                        tvCotacao.text = "${formatarValor(valorBigDecimal, moedaOrigem)} para ${formatarValor(resultado, moedaDestino)}"
                         cardResultado.visibility = View.VISIBLE
+                        btnConfirmar.visibility = View.VISIBLE
                     } catch (e: Exception) {
                         val msg = "Erro: ${e.localizedMessage ?: "Falha na conexão"}"
                         Snackbar.make(btnConverter, msg, Snackbar.LENGTH_LONG).show()
@@ -109,6 +151,31 @@ class ConvertActivity : AppCompatActivity() {
             } else {
                 editValor.error = "Digite um valor maior que zero"
             }
+        }
+
+        btnConfirmar.setOnClickListener {
+            val valorOrigem = valorOrigemCotado
+            val valorDestino = valorDestinoCotado
+
+            if (valorOrigem == null || valorDestino == null) {
+                Snackbar.make(btnConfirmar, "Busque a cotação antes de confirmar", Snackbar.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
+            val moedaOrigem = moedas[posicaoOrigemCotada]
+            val moedaDestino = moedas[posicaoDestinoCotada]
+
+            if (valorOrigem.toDouble() > moedaOrigem.saldo) {
+                editValor.error = "Saldo insuficiente"
+                return@setOnClickListener
+            }
+
+            moedaOrigem.saldo -= valorOrigem.toDouble()
+            moedaDestino.saldo += valorDestino.toDouble()
+            tvSaldoDisponivel.text = "Saldo disponível: ${formatarSaldo(moedaOrigem)}"
+            btnConfirmar.visibility = View.GONE
+
+            Snackbar.make(btnConfirmar, "Conversão confirmada", Snackbar.LENGTH_LONG).show()
         }
     }
 
