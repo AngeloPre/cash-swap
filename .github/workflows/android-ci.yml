@@ -3,7 +3,7 @@ name: CI e Build APK Android
 on:
   push:
     branches:
-      - release
+      - main
   workflow_dispatch:
 
 permissions:
