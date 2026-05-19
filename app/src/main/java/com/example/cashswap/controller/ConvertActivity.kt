@@ -15,6 +15,7 @@ import com.example.cashswap.services.ServiceProvider
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -116,7 +117,7 @@ class ConvertActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                if (valorBigDecimal.toDouble() > moedaOrigem.saldo) {
+                if (valorBigDecimal > moedaOrigem.saldo) {
                     editValor.error = "Saldo insuficiente"
                     return@setOnClickListener
                 }
@@ -165,13 +166,17 @@ class ConvertActivity : AppCompatActivity() {
             val moedaOrigem = moedas[posicaoOrigemCotada]
             val moedaDestino = moedas[posicaoDestinoCotada]
 
-            if (valorOrigem.toDouble() > moedaOrigem.saldo) {
+            if (valorOrigem > moedaOrigem.saldo) {
                 editValor.error = "Saldo insuficiente"
                 return@setOnClickListener
             }
 
-            moedaOrigem.saldo -= valorOrigem.toDouble()
-            moedaDestino.saldo += valorDestino.toDouble()
+            moedaOrigem.saldo = moedaOrigem.saldo
+                .subtract(valorOrigem)
+                .setScale(moedaOrigem.casasDecimais, RoundingMode.HALF_UP)
+            moedaDestino.saldo = moedaDestino.saldo
+                .add(valorDestino)
+                .setScale(moedaDestino.casasDecimais, RoundingMode.HALF_UP)
             tvSaldoDisponivel.text = "Saldo disponível: ${formatarSaldo(moedaOrigem)}"
             btnConfirmar.visibility = View.GONE
 
