@@ -14,8 +14,12 @@ import com.example.cashswap.model.Moeda
 import com.example.cashswap.services.ServiceProvider
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -143,7 +147,18 @@ class ConvertActivity : AppCompatActivity() {
                         cardResultado.visibility = View.VISIBLE
                         btnConfirmar.visibility = View.VISIBLE
                     } catch (e: Exception) {
-                        val msg = "Erro: ${e.localizedMessage ?: "Falha na conexão"}"
+                        val msg = when (e) {
+                            is UnknownHostException ->
+                                "Sem conexão com a internet. Verifique sua rede e tente novamente."
+                            is SocketTimeoutException ->
+                                "A conexão demorou demais para responder. Tente novamente."
+                            is HttpException ->
+                                "O servidor de cotações retornou um erro (${e.code()}). Tente novamente em instantes."
+                            is IOException ->
+                                "Falha ao acessar o servidor de cotações. Verifique sua conexão."
+                            else ->
+                                "Não foi possível obter a cotação no momento. Tente novamente."
+                        }
                         Snackbar.make(btnConverter, msg, Snackbar.LENGTH_LONG).show()
                     } finally {
                         progressBar.visibility = View.GONE
